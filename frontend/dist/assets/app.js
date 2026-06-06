@@ -201,40 +201,106 @@ document.addEventListener("DOMContentLoaded", () => {
         // Step 1: OCR starting
         setStepActive(stepOCR);
 
+        const isGitHubPages = window.location.hostname.includes("github.io");
+
         try {
-            // Initiate parallel network request
-            const fetchPromise = fetch("/api/process", {
-                method: "POST",
-                body: formData
-            });
+            let data;
+            if (isGitHubPages) {
+                // Run step-by-step animations with delay to simulate pipeline execution
+                await delay(1200);
+                setStepDone(stepOCR);
+                
+                setStepActive(stepGST);
+                await delay(1500);
+                setStepDone(stepGST);
 
-            // Simulate parsing progress
-            await delay(1200);
-            setStepDone(stepOCR);
-            
-            // Step 2: GST scraping starting
-            setStepActive(stepGST);
-            await delay(1500);
-            setStepDone(stepGST);
+                setStepActive(stepMath);
+                await delay(1000);
+                setStepDone(stepMath);
 
-            // Step 3: Math audit starting
-            setStepActive(stepMath);
-            await delay(1000);
-            setStepDone(stepMath);
+                setStepActive(stepSynth);
+                await delay(500);
 
-            // Step 4: Final synthesis
-            setStepActive(stepSynth);
+                // High fidelity mock response for portfolio demo mode
+                data = {
+                    "is_bill_valid": true,
+                    "status_message": "Bill is Valid. (Demo Mode: Running on GitHub Pages without a backend server)",
+                    "discrepancy_details": [],
+                    "receipt_data": {
+                        "gst_number": "23AABFH6030L1ZN",
+                        "pan_number": "AABFH6030L",
+                        "validation_errors": [],
+                        "date": "24/07/2021",
+                        "table_number": "34",
+                        "line_items": [
+                            { "description": "VEG MANCHAW SOUP", "qty": 1, "amount": 119.0 },
+                            { "description": "VEG SWEET CORN", "qty": 1, "amount": 119.0 },
+                            { "description": "DAL TADKA", "qty": 1, "amount": 215.0 },
+                            { "description": "JEERA RICE", "qty": 1, "amount": 145.0 },
+                            { "description": "PLAIN PAPAD", "qty": 2, "amount": 80.0 },
+                            { "description": "BAKED VEG WITH CHEESE", "qty": 1, "amount": 270.0 }
+                        ],
+                        "total_amount": 948.0,
+                        "taxes": [
+                            { "tax_type": "CGST", "percentage": 2.5, "amount": 23.7 },
+                            { "tax_type": "SGST", "percentage": 2.5, "amount": 23.7 }
+                        ],
+                        "bill_amount": 995.4
+                    },
+                    "gst_profile": {
+                        "Registration Type": "Regular",
+                        "Business Name": "DINE & WINE RESTAURANT",
+                        "PAN": "AABFH6030L",
+                        "Entity Type": "Partnership",
+                        "Registration Date": "01/07/2017"
+                    },
+                    "math_audit": {
+                        "calculated_subtotal": 948.0,
+                        "extracted_subtotal": 948.0,
+                        "calculated_taxes": [
+                            { "tax_type": "CGST", "calculated_amount": 23.7, "extracted_amount": 23.7 },
+                            { "tax_type": "SGST", "calculated_amount": 23.7, "extracted_amount": 23.7 }
+                        ],
+                        "calculated_bill_amount": 995.4,
+                        "extracted_bill_amount": 995.4,
+                        "is_math_valid": true,
+                        "discrepancy_warnings": []
+                    }
+                };
+                setStepDone(stepSynth);
+                await delay(400);
+            } else {
+                // Initiate parallel network request to local backend
+                const fetchPromise = fetch("/api/process", {
+                    method: "POST",
+                    body: formData
+                });
 
-            const response = await fetchPromise;
-            if (!response.ok) {
-                throw new Error(`HTTP Error status ${response.status}`);
+                // Simulate local parsing progress
+                await delay(1200);
+                setStepDone(stepOCR);
+                
+                setStepActive(stepGST);
+                await delay(1500);
+                setStepDone(stepGST);
+
+                setStepActive(stepMath);
+                await delay(1000);
+                setStepDone(stepMath);
+
+                setStepActive(stepSynth);
+
+                const response = await fetchPromise;
+                if (!response.ok) {
+                    throw new Error(`HTTP Error status ${response.status}`);
+                }
+
+                data = await response.json();
+                setStepDone(stepSynth);
+                await delay(400);
             }
 
-            const data = await response.json();
-            setStepDone(stepSynth);
-            await delay(400);
-
-            // 4. Render synthesis validation outputs
+            // 4. Render validation outputs
             renderResults(data);
 
         } catch (err) {
