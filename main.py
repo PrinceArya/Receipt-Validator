@@ -1,7 +1,11 @@
 import os
 import sys
+import shutil
 import asyncio
 from typing import Dict, Any
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse, FileResponse
 
 # Playwright on Windows requires ProactorEventLoop to manage browser subprocesses
 if sys.platform == 'win32':
@@ -23,6 +27,15 @@ except ImportError as ie:
     # Handle import errors gracefully if running from a different context
     print(f"Import Error: {ie}")
     raise
+
+# ==========================================
+# Initialize FastAPI Application
+# ==========================================
+app = FastAPI(
+    title="Receipt Validator Orchestrator App",
+    description="Full-stack endpoint serving React SPA static files and validation pipeline",
+    version="1.0.0"
+)
 
 async def process_receipt(image_path: str) -> dict:
     """
@@ -95,6 +108,10 @@ async def process_receipt(image_path: str) -> dict:
             run_math_audit(bill_parser_json)
         )
 
+        import json
+        print(f"DEBUG PIPELINE: bill_parser_json = {json.dumps(bill_parser_json, indent=2)}")
+        print(f"DEBUG PIPELINE: amount_calculator_json = {json.dumps(amount_calculator_json, indent=2)}")
+
         # Step 4: Final Synthesis (Sequential)
         final_validation_json = BillSynthesisValidator.validate_bill(
             gst_validator_json,
@@ -102,7 +119,13 @@ async def process_receipt(image_path: str) -> dict:
             amount_calculator_json
         )
 
-        return final_validation_json
+        # Combine synthesis and details for UI rendering
+        return {
+            **final_validation_json,
+            "receipt_data": bill_parser_json,
+            "gst_profile": gst_validator_json,
+            "math_audit": amount_calculator_json.get("audit_results", amount_calculator_json)
+        }
 
     except Exception as e:
         # Standardized HTTP 500 equivalent JSON error response if the pipeline breaks unexpectedly
@@ -116,55 +139,85 @@ async def process_receipt(image_path: str) -> dict:
             }
         }
 
-if __name__ == "__main__":
-    # Test the pipeline with a sample image path
-    test_image = r"D:\Project\Receipt_validator\temp_img\images_receipt.jpeg"
-    
-    if not os.path.exists(test_image):
-        print(f"Warning: Test image not found at {test_image}. Please make sure the image exists to test.")
-        # Try to find mock receipt from test suite
-        test_image = "mock_receipt_orchestrator.jpg"
-        from amount_calculator.test_validator import TestReceiptMathematicalValidator
-        # Create a mock receipt image programmatically for test
-        from PIL import Image, ImageDraw
-        img = Image.new("RGB", (500, 400), color="white")
-        draw = ImageDraw.Draw(img)
-        text_lines = [
-            "==================================",
-            "          MOCK RESTAURANT         ",
-            "==================================",
-            "GSTIN: 23AABFH6030L1ZN",
-            "Date: 24/07/2021",
-            "Table No: 34",
-            "----------------------------------",
-            "Item          Qty       Amount    ",
-            "----------------------------------",
-            "Masala Dosa   2.0       120.00    ",
-            "Filter Coffee 1.0        30.00    ",
-            "----------------------------------",
-            "Subtotal:               150.00    ",
-            "CGST 2.5%:                3.75    ",
-            "SGST 2.5%:                3.75    ",
-            "----------------------------------",
-            "Total Payable:          157.50    ",
-            "=================================="
-        ]
-        y = 10
-        for line in text_lines:
-            draw.text((20, y), line, fill="black")
-            y += 20
-        img.save(test_image)
-        print(f"Created programmatically mock receipt image at: {test_image}")
+# ==========================================
+# API Routes
+# ==========================================
 
-    print(f"Starting pipeline execution for receipt image: {test_image}...\n")
+@app.post("/api/process")
+async def upload_and_process_receipt(file: UploadFile = File(...)):
+    """
+    Accepts a receipt image via multipart file upload, saves it,
+    runs the validation pipeline, and returns the final synthesized validation results.
+    """
+    temp_dir = "temp_img"
+    os.makedirs(temp_dir, exist_ok=True)
+    temp_file_path = os.path.join(temp_dir, f"upload_{file.filename}")
     
-    result = asyncio.run(process_receipt(test_image))
-    
-    print("\n--- FINAL SYNTHESIS PIPELINE RESULT ---")
-    import json
-    print(json.dumps(result, indent=2))
-    print("---------------------------------------")
-    
-    # Cleanup mock if generated
-    if os.path.exists("mock_receipt_orchestrator.jpg"):
-        os.remove("mock_receipt_orchestrator.jpg")
+    try:
+        with open(temp_file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        result = await process_receipt(temp_file_path)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pipeline processing failed: {str(e)}")
+    finally:
+        if os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
+@app.post("/api/process-path")
+async def process_receipt_by_path(image_path: str = Form(...)):
+    """
+    Runs the receipt validation pipeline on a local file path.
+    """
+    if not os.path.exists(image_path):
+        raise HTTPException(status_code=400, detail=f"Target file path '{image_path}' does not exist.")
+    return await process_receipt(image_path)
+
+@app.get("/api/gst/{gstin}")
+async def get_gst(
+    gstin: str = Path(..., description="15-character Goods and Services Tax Identification Number")
+):
+    """
+    Exposes direct scraper access to get GST registration details by scraping ClearTax.
+    """
+    if len(gstin) != 15:
+        raise HTTPException(status_code=400, detail="GSTIN must be exactly 15 characters long.")
+    try:
+        return await get_gst_details(gstin)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==========================================
+# Static Files & Frontend Routing
+# ==========================================
+
+# Mount static React SPA assets
+frontend_assets_dir = os.path.join("frontend", "dist", "assets")
+if os.path.exists(frontend_assets_dir):
+    app.mount("/assets", StaticFiles(directory=frontend_assets_dir), name="assets")
+
+@app.get("/")
+async def serve_index():
+    index_path = os.path.join("frontend", "dist", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return HTMLResponse("React build index.html not found.", status_code=404)
+
+@app.get("/{catchall:path}")
+async def serve_spa(catchall: str):
+    # Return 404 for missing /api routes
+    if catchall.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API route not found.")
+        
+    index_path = os.path.join("frontend", "dist", "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return HTMLResponse("React build index.html not found.", status_code=404)
+
+# Keep standard main block for standalone testing and run verification
+if __name__ == "__main__":
+    import uvicorn
+    # Standalone execution - launch server
+    print("Launching orchestrator FastAPI app server...")
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

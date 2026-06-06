@@ -97,5 +97,40 @@ class TestReceiptMathematicalValidator(unittest.TestCase):
         self.assertTrue(audit["is_math_valid"])
         self.assertEqual(len(audit["discrepancy_warnings"]), 0)
 
+    def test_math_validation_with_null_and_zero_percentage_taxes(self):
+        # Receipt contains taxes where percentage is null or 0.0, which should fall back to using absolute amounts.
+        receipt_data = {
+            "total_amount": 218.76,
+            "bill_amount": 247.20,
+            "line_items": [
+                {"description": "PERONI", "qty": 4, "amount": 27.00},
+                {"description": "POP", "qty": 2, "amount": 4.00},
+                {"description": "1/2L PASQUA SANGOVESE", "qty": 1, "amount": 14.99},
+                {"description": "GLS PASQUA SOAVE", "qty": 1, "amount": 5.99},
+                {"description": "VEAL PARMIGIANA", "qty": 2, "amount": 41.98},
+                {"description": "LEMON CHICKEN", "qty": 2, "amount": 35.98},
+                {"description": "LINGUINE DI MARE", "qty": 1, "amount": 17.95},
+                {"description": "SHRIMP DIAVOLO", "qty": 1, "amount": 15.99},
+                {"description": "CHKN PARMIGIANA", "qty": 1, "amount": 17.99},
+                {"description": "SIDE CAESAR SALAD", "qty": 1, "amount": 2.00},
+                {"description": "Sub ALFREDO SAUCE", "qty": 1, "amount": 2.50},
+                {"description": "CHKN PARMIGIANA", "qty": 1, "amount": 17.99},
+                {"description": "Sub ALFREDO SAUCE", "qty": 1, "amount": 2.50},
+                {"description": "SAMBUCA", "qty": 2, "amount": 11.90}
+            ],
+            "taxes": [
+                {"tax_type": "GST", "percentage": None, "amount": 10.94},
+                {"tax_type": "PST", "percentage": 0.0, "amount": 17.50}
+            ]
+        }
+        
+        result = ReceiptMathematicalValidator.validate_amounts(receipt_data)
+        audit = result["audit_results"]
+        
+        self.assertEqual(audit["calculated_subtotal"], 218.76)
+        self.assertEqual(audit["calculated_bill_amount"], 247.20)
+        self.assertTrue(audit["is_math_valid"])
+        self.assertEqual(len(audit["discrepancy_warnings"]), 0)
+
 if __name__ == "__main__":
     unittest.main()

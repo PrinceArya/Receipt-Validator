@@ -18,7 +18,7 @@ class LineItem(BaseModel):
 
 class TaxItem(BaseModel):
     tax_type: str = Field(description="Tax type (e.g. CGST, SGST, IGST)")
-    percentage: float = Field(description="Tax percentage (e.g. 2.5)")
+    percentage: Optional[float] = Field(None, description="Tax percentage (e.g. 2.5) or null/0.0 if not specified on the bill")
     amount: float = Field(description="Tax amount")
 
 class ReceiptSchema(BaseModel):
@@ -114,7 +114,7 @@ class ReceiptParser:
             '  "taxes": [\n'
             "    {\n"
             '      "tax_type": "string (e.g., CGST, SGST, IGST)",\n'
-            '      "percentage": "float (e.g., 2.5)",\n'
+            '      "percentage": "float (e.g., 2.5) or null/0.0 if not specified on the bill",\n'
             '      "amount": "float"\n'
             "    }\n"
             "  ],\n"

@@ -43,7 +43,13 @@ class ReceiptMathematicalValidator:
             
             # If we haven't seen this tax type yet, store it
             if tax_type_clean not in unique_taxes:
-                percentage = float(tax.get("percentage") or 0.0)
+                percentage = tax.get("percentage")
+                if percentage is not None:
+                    try:
+                        percentage = float(percentage)
+                    except (ValueError, TypeError):
+                        percentage = None
+                
                 extracted_amount = float(tax.get("amount") or 0.0)
                 unique_taxes[tax_type_clean] = {
                     "tax_type": tax_type_clean,
@@ -57,8 +63,15 @@ class ReceiptMathematicalValidator:
         
         for tax_key in sorted(unique_taxes.keys()):
             tax_info = unique_taxes[tax_key]
-            # Formula: calculated_tax_amount = calculated_subtotal * (percentage / 100)
-            calc_tax_amount = calculated_subtotal * (tax_info["percentage"] / 100.0)
+            pct = tax_info["percentage"]
+            
+            # If percentage is null (None) or zero, use the absolute tax while computing the bill amount
+            if pct is None or pct == 0.0:
+                calc_tax_amount = tax_info["extracted_amount"]
+            else:
+                # Formula: calculated_tax_amount = calculated_subtotal * (percentage / 100)
+                calc_tax_amount = calculated_subtotal * (pct / 100.0)
+            
             calc_tax_amount = round(calc_tax_amount, 2)
             
             total_calculated_tax += calc_tax_amount
