@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
             `;
-            statusTitle.innerText = "Audit Failed / Discrepancy Found";
+            statusTitle.innerText = "Invalid Bill";
             statusMessage.innerText = statusMsg;
         }
 
@@ -339,34 +339,29 @@ document.addEventListener("DOMContentLoaded", () => {
             lineItems = payload.receipt_data.line_items;
         }
 
-        // Fallback to demo items if no receipt data present
+        // Render line items if available
         if (lineItems.length === 0) {
-            lineItems = [
-                { description: "VEG MANCHAW SOUP (Demo)", qty: 1, amount: 119.0 },
-                { description: "DAL TADKA (Demo)", qty: 1, amount: 215.0 },
-                { description: "JEERA RICE (Demo)", qty: 1, amount: 145.0 },
-                { description: "PLAIN PAPAD (Demo)", qty: 2, amount: 80.0 }
-            ];
+            tableItemsBody.innerHTML = "<tr><td colspan='3' class='text-muted text-center'>No items extracted</td></tr>";
+        } else {
+            lineItems.forEach(item => {
+                const desc = item.description || item.desc || "Unknown Item";
+                const qty = item.qty || 1;
+                const amt = item.amount || item.amt || 0.0;
+                
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${desc}</td>
+                    <td class="text-right">${qty}</td>
+                    <td class="text-right">₹${parseFloat(amt).toFixed(2)}</td>
+                `;
+                tableItemsBody.appendChild(tr);
+            });
         }
 
-        lineItems.forEach(item => {
-            const desc = item.description || item.desc || "Unknown Item";
-            const qty = item.qty || 1;
-            const amt = item.amount || item.amt || 0.0;
-            
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${desc}</td>
-                <td class="text-right">${qty}</td>
-                <td class="text-right">₹${parseFloat(amt).toFixed(2)}</td>
-            `;
-            tableItemsBody.appendChild(tr);
-        });
-
         // Dynamically compute/read calculation values
-        let subtotalVal = 1315.0;
-        let taxVal = 65.76;
-        let grandTotalVal = 1380.76;
+        let subtotalVal = 0.0;
+        let taxVal = 0.0;
+        let grandTotalVal = 0.0;
 
         if (payload.math_audit) {
             subtotalVal = payload.math_audit.calculated_subtotal || 0.0;
@@ -380,9 +375,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // Set math values on UI
-        valSubtotal.innerText = `₹${parseFloat(subtotalVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-        valTaxes.innerText = `₹${parseFloat(taxVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-        valGrandTotal.innerText = `₹${parseFloat(grandTotalVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        if (subtotalVal === 0.0 && grandTotalVal === 0.0) {
+            valSubtotal.innerText = "-";
+            valTaxes.innerText = "-";
+            valGrandTotal.innerText = "-";
+        } else {
+            valSubtotal.innerText = `₹${parseFloat(subtotalVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+            valTaxes.innerText = `₹${parseFloat(taxVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+            valGrandTotal.innerText = `₹${parseFloat(grandTotalVal).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+        }
     }
 
     function renderError(message) {
