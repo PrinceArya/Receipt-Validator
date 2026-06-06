@@ -36,7 +36,7 @@ class TestBillSynthesisValidator(unittest.TestCase):
         self.assertFalse(result["is_bill_valid"])
         self.assertEqual(
             result["status_message"],
-            "Discrepancy in the Bill: Substantial mathematical mismatch between calculated items and extracted total."
+            "Invalid Bill"
         )
         self.assertEqual(len(result["discrepancy_details"]), 1)
         self.assertIn("Substantial mathematical mismatch", result["discrepancy_details"][0])
@@ -74,7 +74,7 @@ class TestBillSynthesisValidator(unittest.TestCase):
         self.assertFalse(result["is_bill_valid"])
         self.assertEqual(
             result["status_message"],
-            "Discrepancy in the Bill: Illegal tax collection. Seller is under Composition scheme but charged GST."
+            "Invalid Bill"
         )
         self.assertEqual(len(result["discrepancy_details"]), 1)
         self.assertIn("Illegal tax collection", result["discrepancy_details"][0])

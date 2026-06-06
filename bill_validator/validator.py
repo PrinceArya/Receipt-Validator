@@ -31,9 +31,8 @@ class BillSynthesisValidator:
 
         if abs(calculated_bill_amount - extracted_bill_amount) > 5.0:
             is_bill_valid = False
-            reason = "Discrepancy in the Bill: Substantial mathematical mismatch between calculated items and extracted total."
-            status_message = reason
-            discrepancy_details.append(reason)
+            status_message = "Invalid Bill"
+            discrepancy_details.append("Discrepancy in the Bill: Substantial mathematical mismatch between calculated items and extracted total.")
             return {
                 "is_bill_valid": is_bill_valid,
                 "status_message": status_message,
@@ -50,9 +49,8 @@ class BillSynthesisValidator:
                 amount = float(tax.get("amount") or 0.0)
                 if tax_type in ["CGST", "SGST", "IGST"] and amount > 0.0:
                     is_bill_valid = False
-                    reason = "Discrepancy in the Bill: Illegal tax collection. Seller is under Composition scheme but charged GST."
-                    status_message = reason
-                    discrepancy_details.append(reason)
+                    status_message = "Invalid Bill"
+                    discrepancy_details.append("Discrepancy in the Bill: Illegal tax collection. Seller is under Composition scheme but charged GST.")
                     return {
                         "is_bill_valid": is_bill_valid,
                         "status_message": status_message,

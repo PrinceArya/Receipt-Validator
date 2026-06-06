@@ -692,3 +692,28 @@ code {
         margin: 0 auto;
     }
 }
+
+/* Footer Styling */
+footer {
+    text-align: center;
+    margin-top: 45px;
+    padding-top: 25px;
+    border-top: 1px solid var(--border-color);
+}
+
+.developer-info {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.developer-info a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.developer-info a:hover {
+    color: var(--primary);
+    text-decoration: underline;
+}

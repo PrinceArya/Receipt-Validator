@@ -59,14 +59,14 @@ async def process_receipt(image_path: str) -> dict:
             if not bill_parser_json or not isinstance(bill_parser_json, dict):
                 return {
                     "is_bill_valid": False,
-                    "status_message": "Discrepancy in the Bill: Image parsing returned empty or invalid schema.",
+                    "status_message": "Invalid Bill",
                     "discrepancy_details": ["Image parsing failed or returned empty JSON object."]
                 }
         except Exception as e:
             # If the parser throws an error, halt execution and return a failure payload immediately
             return {
                 "is_bill_valid": False,
-                "status_message": f"Discrepancy in the Bill: Image parsing failed. Error: {str(e)}",
+                "status_message": "Invalid Bill",
                 "discrepancy_details": [f"Image parsing failed: {str(e)}"]
             }
 

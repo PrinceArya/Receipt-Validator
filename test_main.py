@@ -92,7 +92,7 @@ class TestOrchestratorPipeline(unittest.TestCase):
 
         # Verify output halts execution and returns a failure payload
         self.assertFalse(result["is_bill_valid"])
-        self.assertIn("Image parsing failed", result["status_message"])
+        self.assertEqual("Invalid Bill", result["status_message"])
         self.assertIn("OpenRouter API failure", result["discrepancy_details"][0])
 
 if __name__ == "__main__":
