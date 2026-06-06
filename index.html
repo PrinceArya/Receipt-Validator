@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Receipt Audit Portal</title>
+    <link rel="stylesheet" href="assets/app.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <span class="gradient-text">ANTIGRAVITY</span> Receipt Validator
+            </div>
+            <p class="subtitle">Autonomous AI-Powered Document Intelligence & Statutory Compliance Engine</p>
+        </header>
+
+        <main class="grid-layout">
+            <!-- Left Panel: Ingestion Controls -->
+            <section class="panel glass">
+                <h2>1. Receipt Ingestion</h2>
+                <p class="panel-desc">Upload a high-resolution receipt image or capture one in real-time.</p>
+
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" id="tab-upload">File Upload</button>
+                    <button class="tab-btn" id="tab-camera">Live Camera</button>
+                </div>
+
+                <!-- Tab 1: Upload Box -->
+                <div class="tab-content active" id="upload-content">
+                    <div class="drop-zone" id="drop-zone">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        <p class="drop-text">Drag & drop your receipt image here</p>
+                        <p class="or-text">or</p>
+                        <label class="btn btn-primary" for="file-input">Browse Files</label>
+                        <input type="file" id="file-input" accept="image/*" style="display: none;">
+                    </div>
+                </div>
+
+                <!-- Tab 2: Camera Stream -->
+                <div class="tab-content" id="camera-content">
+                    <div class="camera-box">
+                        <video id="video" autoplay playsinline></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        <div class="camera-fallback" id="camera-fallback">Camera stream inactive</div>
+                    </div>
+                    <div class="camera-controls">
+                        <button class="btn btn-secondary" id="btn-start-camera">Start Camera</button>
+                        <button class="btn btn-accent" id="btn-capture" disabled>Capture Frame</button>
+                    </div>
+                </div>
+
+                <!-- Preview Area -->
+                <div class="preview-box hidden" id="preview-box">
+                    <h3>Selected Image</h3>
+                    <img id="image-preview" src="" alt="Receipt preview">
+                    <button class="btn btn-success" id="btn-submit">Analyze & Validate Receipt</button>
+                </div>
+            </section>
+
+            <!-- Right Panel: Results & Auditing -->
+            <section class="panel glass">
+                <h2>2. Verification Results</h2>
+                <p class="panel-desc">Real-time analysis, scrapers, and mathematical audits.</p>
+
+                <!-- Idle State -->
+                <div class="state-container" id="state-idle">
+                    <div class="idle-illustration">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                    </div>
+                    <p>Awaiting receipt ingestion to initiate pipeline execution...</p>
+                </div>
+
+                <!-- Loading State -->
+                <div class="state-container hidden" id="state-loading">
+                    <div class="spinner"></div>
+                    <p class="loading-msg">Executing autonomous pipeline...</p>
+                    <div class="pipeline-steps">
+                        <div class="step" id="step-ocr"><span class="step-dot"></span> Extracting layout & OCR details...</div>
+                        <div class="step" id="step-gst"><span class="step-dot"></span> Scraping ClearTax GSTIN portal...</div>
+                        <div class="step" id="step-math"><span class="step-dot"></span> Recalculating mathematical subtotals & taxes...</div>
+                        <div class="step" id="step-synth"><span class="step-dot"></span> Finalizing synthesised validation audit...</div>
+                    </div>
+                </div>
+
+                <!-- Results Output -->
+                <div class="results-container hidden" id="results-container">
+                    <!-- Status Header Card -->
+                    <div class="status-card" id="status-card">
+                        <div class="status-icon" id="status-icon"></div>
+                        <div class="status-info">
+                            <h3 id="status-title">Pending Analysis</h3>
+                            <p id="status-message">Analysis results are being loaded.</p>
+                        </div>
+                    </div>
+
+                    <!-- Warnings List -->
+                    <div class="warnings-box hidden" id="warnings-box">
+                        <h4>Audit Warnings & Discrepancies</h4>
+                        <ul id="warnings-list"></ul>
+                    </div>
+
+                    <!-- Tabs for detailed views -->
+                    <div class="detail-tabs">
+                        <button class="detail-tab-btn active" data-target="detail-summary">Summary</button>
+                        <button class="detail-tab-btn" data-target="detail-raw">Raw Output</button>
+                    </div>
+
+                    <!-- Summary details -->
+                    <div class="detail-content active" id="detail-summary">
+                        <!-- Items Table -->
+                        <div class="table-container">
+                            <h4>Line Items</h4>
+                            <table id="table-items">
+                                <thead>
+                                    <tr>
+                                        <th>Description</th>
+                                        <th class="text-right">Qty</th>
+                                        <th class="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Mathematical Summary -->
+                        <div class="math-summary">
+                            <h4>Arithmetic Audit</h4>
+                            <div class="summary-grid">
+                                <div class="summary-item">
+                                    <span class="label">Subtotal (Calculated)</span>
+                                    <span class="value" id="val-subtotal">-</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="label">Taxes (Calculated)</span>
+                                    <span class="value" id="val-taxes">-</span>
+                                </div>
+                                <div class="summary-item highlight">
+                                    <span class="label">Grand Total (Calculated)</span>
+                                    <span class="value" id="val-grand-total">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Raw output details -->
+                    <div class="detail-content" id="detail-raw">
+                        <pre><code id="raw-json-output"></code></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="assets/app.js"></script>
+</body>
+</html>
