@@ -98,5 +98,44 @@ class TestBillSynthesisValidator(unittest.TestCase):
         self.assertTrue(result["is_bill_valid"])
         self.assertEqual(result["status_message"], "Bill is Valid.")
 
+    def test_invalid_gstin_structure_fails(self):
+        # GSTIN structure invalid (e.g. regex error detected during parsing)
+        gst_profile = {"Registration Type": "Regular"}
+        receipt_data = {
+            "validation_errors": ["INVALID_GST_LENGTH"]
+        }
+        math_audit = {
+            "calculated_bill_amount": 100.0,
+            "extracted_bill_amount": 100.0
+        }
+
+        result = BillSynthesisValidator.validate_bill(gst_profile, receipt_data, math_audit)
+        
+        self.assertFalse(result["is_bill_valid"])
+        self.assertEqual(result["status_message"], "Invalid Bill")
+        self.assertEqual(len(result["discrepancy_details"]), 1)
+        self.assertIn("Invalid GST number structure", result["discrepancy_details"][0])
+
+    def test_invalid_gstin_portal_fails(self):
+        # GSTIN is valid format but does not exist on portal
+        gst_profile = {
+            "Registration Type": "Unregistered",
+            "is_gstin_valid": False
+        }
+        receipt_data = {
+            "validation_errors": []
+        }
+        math_audit = {
+            "calculated_bill_amount": 100.0,
+            "extracted_bill_amount": 100.0
+        }
+
+        result = BillSynthesisValidator.validate_bill(gst_profile, receipt_data, math_audit)
+        
+        self.assertFalse(result["is_bill_valid"])
+        self.assertEqual(result["status_message"], "Invalid Bill")
+        self.assertEqual(len(result["discrepancy_details"]), 1)
+        self.assertIn("GST number is invalid or not registered", result["discrepancy_details"][0])
+
 if __name__ == "__main__":
     unittest.main()

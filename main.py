@@ -82,19 +82,41 @@ async def process_receipt(image_path: str) -> dict:
                 return {
                     "Registration Type": "Unregistered",
                     "Business Name": "Unregistered",
-                    "PAN": gstin[2:12].upper() if (gstin and len(str(gstin)) >= 12) else None
+                    "PAN": gstin[2:12].upper() if (gstin and len(str(gstin)) >= 12) else None,
+                    "is_gstin_valid": True
                 }
             
             # Otherwise, call clear tax API wrapper from gst_validator
             try:
-                return await get_gst_details(str(gstin))
+                details = await get_gst_details(str(gstin))
+                details["is_gstin_valid"] = True
+                return details
+            except HTTPException as he:
+                # If it's a 404, we know the GSTIN is invalid on the portal
+                if he.status_code == 404:
+                    return {
+                        "Registration Type": "Unregistered",
+                        "Business Name": "Invalid GSTIN",
+                        "PAN": str(gstin)[2:12].upper() if len(str(gstin)) >= 12 else None,
+                        "is_gstin_valid": False,
+                        "error_message": he.detail
+                    }
+                # Fallback for other HTTPExceptions (e.g. 500 timeout)
+                return {
+                    "Registration Type": "Unregistered",
+                    "Business Name": f"Unknown (GST API Error: {he.detail})",
+                    "PAN": str(gstin)[2:12].upper() if len(str(gstin)) >= 12 else None,
+                    "is_gstin_valid": True,  # Keep valid on timeout to prevent false positives
+                    "error_message": he.detail
+                }
             except Exception as e:
-                # If API call fails (portal down, invalid GSTIN, scraper error), fallback gracefully
-                # to a default Unregistered/Unknown payload so the pipeline does not completely halt
+                # If API call fails (portal down, scraper error), fallback gracefully
                 return {
                     "Registration Type": "Unregistered",
                     "Business Name": f"Unknown (GST API Error: {str(e)})",
-                    "PAN": str(gstin)[2:12].upper() if len(str(gstin)) >= 12 else None
+                    "PAN": str(gstin)[2:12].upper() if len(str(gstin)) >= 12 else None,
+                    "is_gstin_valid": True,
+                    "error_message": str(e)
                 }
 
         async def run_math_audit(data: dict) -> dict:

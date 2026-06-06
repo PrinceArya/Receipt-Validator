@@ -57,6 +57,33 @@ class BillSynthesisValidator:
                         "discrepancy_details": discrepancy_details
                     }
 
+        # Check 3: GSTIN Structural Validity Check
+        validation_errors = receipt_data_json.get("validation_errors", [])
+        if validation_errors:
+            is_bill_valid = False
+            status_message = "Invalid Bill"
+            discrepancy_details.append(
+                f"Discrepancy in the Bill: Invalid GST number structure found on receipt. Errors: {', '.join(validation_errors)}"
+            )
+            return {
+                "is_bill_valid": is_bill_valid,
+                "status_message": status_message,
+                "discrepancy_details": discrepancy_details
+            }
+
+        # Check 4: GSTIN Portal Registration Check
+        if not gst_profile_json.get("is_gstin_valid", True):
+            is_bill_valid = False
+            status_message = "Invalid Bill"
+            discrepancy_details.append(
+                "Discrepancy in the Bill: GST number is invalid or not registered on the GST portal."
+            )
+            return {
+                "is_bill_valid": is_bill_valid,
+                "status_message": status_message,
+                "discrepancy_details": discrepancy_details
+            }
+
         # Default Action: Valid Bill
         return {
             "is_bill_valid": is_bill_valid,
