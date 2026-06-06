@@ -1,0 +1,6 @@
+.agent/
+.env
+**/.env
+__pycache__/
+*.pyc
+temp_img/upload_*

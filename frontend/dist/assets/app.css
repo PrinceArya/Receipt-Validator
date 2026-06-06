@@ -522,6 +522,8 @@ h2 {
 /* Items Table */
 .table-container {
     margin-bottom: 25px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .table-container h4 {
@@ -618,4 +620,75 @@ code {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile Responsiveness Styles */
+@media (max-width: 650px) {
+    body {
+        padding: 20px 12px;
+    }
+
+    header {
+        margin-bottom: 25px;
+    }
+
+    .logo {
+        font-size: 1.8rem;
+    }
+
+    .subtitle {
+        font-size: 0.95rem;
+    }
+
+    .panel {
+        padding: 22px 18px;
+        border-radius: 16px;
+    }
+
+    .drop-zone {
+        padding: 30px 15px;
+    }
+
+    .camera-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .camera-controls .btn {
+        width: 100%;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    th, td {
+        padding: 8px 6px;
+        font-size: 0.82rem;
+    }
+
+    .detail-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        gap: 5px;
+    }
+
+    .detail-tab-btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .status-card {
+        padding: 16px;
+        gap: 12px;
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .status-icon {
+        margin: 0 auto;
+    }
 }
