@@ -48,6 +48,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const valTaxes = document.getElementById("val-taxes");
     const valGrandTotal = document.getElementById("val-grand-total");
     const rawJsonOutput = document.getElementById("raw-json-output");
+    const serviceChargeNote = document.getElementById("service-charge-note");
+    const detailTabsContainer = document.querySelector(".detail-tabs");
 
     // Detail Tabs
     const detailTabs = document.querySelectorAll(".detail-tab-btn");
@@ -326,6 +328,28 @@ document.addEventListener("DOMContentLoaded", () => {
             warningsBox.classList.add("hidden");
         }
 
+        // Manage detail tabs and content visibility based on validity
+        if (isValid) {
+            if (detailTabsContainer) detailTabsContainer.classList.remove("hidden");
+            detailContents.forEach(c => c.classList.remove("hidden"));
+            // Enforce correct tab active state
+            const activeTab = document.querySelector(".detail-tab-btn.active");
+            const targetId = activeTab ? activeTab.getAttribute("data-target") : "detail-summary";
+            detailContents.forEach(c => {
+                if (c.id === targetId) {
+                    c.classList.add("active");
+                } else {
+                    c.classList.remove("active");
+                }
+            });
+        } else {
+            if (detailTabsContainer) detailTabsContainer.classList.add("hidden");
+            detailContents.forEach(c => {
+                c.classList.add("hidden");
+                c.classList.remove("active");
+            });
+        }
+
         // Render summary items
         renderSummaryDetails(payload);
     }
@@ -335,8 +359,28 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // Dynamically extract line items from the response
         let lineItems = [];
-        if (payload.receipt_data && payload.receipt_data.line_items) {
-            lineItems = payload.receipt_data.line_items;
+        let taxes = [];
+        if (payload.receipt_data) {
+            if (payload.receipt_data.line_items) {
+                lineItems = payload.receipt_data.line_items;
+            }
+            if (payload.receipt_data.taxes) {
+                taxes = payload.receipt_data.taxes;
+            }
+        }
+
+        // Check for Service Charge / Service Tax
+        const hasServiceCharge = taxes.some(t => {
+            const taxType = (t.tax_type || "").toLowerCase().trim();
+            return taxType.includes("service") || taxType.includes("charge") || taxType === "sc" || taxType === "s.c.";
+        });
+
+        if (serviceChargeNote) {
+            if (hasServiceCharge) {
+                serviceChargeNote.classList.remove("hidden");
+            } else {
+                serviceChargeNote.classList.add("hidden");
+            }
         }
 
         // Render line items if available

@@ -717,3 +717,24 @@ footer {
     color: var(--primary);
     text-decoration: underline;
 }
+
+/* Service Charge Note Warning Styling */
+.service-charge-note {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--warning-bg);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+    padding: 14px 18px;
+    border-radius: 12px;
+    margin-top: 25px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    animation: fadeIn 0.4s ease;
+}
+
+.service-charge-note svg {
+    flex-shrink: 0;
+    color: var(--warning);
+}

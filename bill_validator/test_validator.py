@@ -6,6 +6,7 @@ class TestBillSynthesisValidator(unittest.TestCase):
         # Valid math, regular taxpayer
         gst_profile = {"Registration Type": "Regular", "Business Name": "Test Business"}
         receipt_data = {
+            "gst_number": "23AABFH6030L1ZN",
             "taxes": [
                 {"tax_type": "CGST", "percentage": 2.5, "amount": 32.88},
                 {"tax_type": "SGST", "percentage": 2.5, "amount": 32.88}
@@ -102,6 +103,7 @@ class TestBillSynthesisValidator(unittest.TestCase):
         # GSTIN structure invalid (e.g. regex error detected during parsing)
         gst_profile = {"Registration Type": "Regular"}
         receipt_data = {
+            "gst_number": "12345",
             "validation_errors": ["INVALID_GST_LENGTH"]
         }
         math_audit = {
@@ -113,8 +115,7 @@ class TestBillSynthesisValidator(unittest.TestCase):
         
         self.assertFalse(result["is_bill_valid"])
         self.assertEqual(result["status_message"], "Invalid Bill")
-        self.assertEqual(len(result["discrepancy_details"]), 1)
-        self.assertIn("Invalid GST number structure", result["discrepancy_details"][0])
+        self.assertEqual(result["discrepancy_details"], ["GST number is invalid"])
 
     def test_invalid_gstin_portal_fails(self):
         # GSTIN is valid format but does not exist on portal
@@ -123,6 +124,7 @@ class TestBillSynthesisValidator(unittest.TestCase):
             "is_gstin_valid": False
         }
         receipt_data = {
+            "gst_number": "23AABFH6030L1ZN",
             "validation_errors": []
         }
         math_audit = {
@@ -134,8 +136,44 @@ class TestBillSynthesisValidator(unittest.TestCase):
         
         self.assertFalse(result["is_bill_valid"])
         self.assertEqual(result["status_message"], "Invalid Bill")
-        self.assertEqual(len(result["discrepancy_details"]), 1)
-        self.assertIn("GST number is invalid or not registered", result["discrepancy_details"][0])
+        self.assertEqual(result["discrepancy_details"], ["GST number is invalid"])
+
+    def test_valid_bill_with_cgst_sgst_but_missing_gstin_warns(self):
+        # CGST/SGST present, but GSTIN missing. Bill remains valid but warns.
+        gst_profile = {"Registration Type": "Unregistered"}
+        receipt_data = {
+            "gst_number": None,
+            "taxes": [
+                {"tax_type": "CGST", "amount": 12.50},
+                {"tax_type": "SGST", "amount": 12.50}
+            ]
+        }
+        math_audit = {
+            "calculated_bill_amount": 100.0,
+            "extracted_bill_amount": 100.0
+        }
+
+        result = BillSynthesisValidator.validate_bill(gst_profile, receipt_data, math_audit)
+        self.assertTrue(result["is_bill_valid"])
+        self.assertEqual(result["status_message"], "Bill is Valid.")
+        self.assertEqual(result["discrepancy_details"], ["GST number is missing"])
+
+    def test_valid_bill_with_missing_gstin_and_no_taxes(self):
+        # GSTIN missing, but no taxes applied. Bill remains valid with no warnings.
+        gst_profile = {"Registration Type": "Unregistered"}
+        receipt_data = {
+            "gst_number": None,
+            "taxes": []
+        }
+        math_audit = {
+            "calculated_bill_amount": 100.0,
+            "extracted_bill_amount": 100.0
+        }
+
+        result = BillSynthesisValidator.validate_bill(gst_profile, receipt_data, math_audit)
+        self.assertTrue(result["is_bill_valid"])
+        self.assertEqual(result["status_message"], "Bill is Valid.")
+        self.assertEqual(result["discrepancy_details"], [])
 
 if __name__ == "__main__":
     unittest.main()
